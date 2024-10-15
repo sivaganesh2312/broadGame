@@ -1,0 +1,68 @@
+---
+trigger:
+  - main
+pool:
+  name: default
+
+stages:
+  - stage: maven
+    displayName: boardgame
+    jobs:
+      - job: boardgame 
+        steps:
+          
+          - task: Maven@4
+            inputs:
+              mavenPOMFile: 'pom.xml'
+              goals: 'package'
+              publishJUnitResults: true
+              testResultsFiles: '*/surefire-reports/TEST-.xml'
+          - task: CopyFiles@2   ## Copying artifacts into the staging directory
+            inputs:
+              contents: '**/**/*.jar'
+              targetFolder: $(Build.ArtifactStagingDirectory)
+          - task: CopyFiles@2
+            inputs:
+              contents: '**/deployment-service.yaml'
+              targetFolder: $(Build.ArtifactStagingDirectory)
+          - task: PublishBuildArtifacts@1  ## We can easily able to access that artifacts
+            inputs:
+              pathToPublish: $(Build.ArtifactStagingDirectory)
+              artifactName: MyBuildOutputs
+          
+          - task: SonarQubePrepare@6
+            inputs:
+              SonarQube: 'sonar-cred'
+              scannerMode: 'CLI'
+              projectKey: 'Boardgame'
+              projectName: 'Boardgame'
+              configMode: 'file'
+              configFile: 'sonar-project.properties'
+
+
+          - task: SonarQubePublish@6
+            inputs:
+              pollingTimeoutSec: '300'
+
+          - script: 
+              trivy fs --format table -o trivy-fs-report.html .
+          - task: Docker@2
+            inputs:
+              containerRegistry: docker-cred
+              command: buildAndPush
+              Dockerfile: '**/Dockerfile'
+              repository: ganesh231/boardgame
+              tags: '$(Build.BuildId)'
+              
+          - task: KubectlInstaller@0
+            inputs:
+              kubectlVersion: 'latest'  
+          - task: Kubernetes@1
+            inputs:
+              connectionType: 'Kubernetes Service Connection' # 'Azure Resource Manager' | 'Kubernetes Service Connection' | 'None'. Required when command != logout. Service connection type. Default: Kubernetes Service Connection.
+              kubernetesServiceEndpoint: kubectl
+              command: apply
+              namespace: 'webapps'
+              arguments: '-f ./deployment-service.yml'
+              configurationType: 'configuration'  # Add configuration type
+              configuration: '**/deployment-service.yml'
