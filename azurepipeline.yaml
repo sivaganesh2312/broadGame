@@ -32,17 +32,19 @@ stages:
           
           - task: SonarQubePrepare@6
             inputs:
-              SonarQube: 'sonar-cred'
+              SonarQube: 'sonar-cred'      # Ensure this matches the credentials in seivice connections
               scannerMode: 'CLI'
-              projectKey: 'Boardgame'
-              projectName: 'Boardgame'
+              projectKey: 'BoardGame'      # Ensure this matches the key in SonarQube
+              projectName: 'BoardGame'
               configMode: 'file'
               configFile: 'sonar-project.properties'
-
+              extraProperties: |
+                sonar.organization=aug2024    # Include only if using SonarCloud
+          - task: SonarQubeAnalyze@6   
 
           - task: SonarQubePublish@6
             inputs:
-              pollingTimeoutSec: '300'
+              pollingTimeoutSec: '300'   # Fail the build if the build takes greater than 5 minutes
 
           - script: 
               trivy fs --format table -o trivy-fs-report.html .
