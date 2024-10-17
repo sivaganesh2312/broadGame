@@ -1,6 +1,6 @@
 ---
 trigger:
-  - main
+  - dev
 pool:
   name: default
 
@@ -35,11 +35,11 @@ stages:
               SonarQube: 'sonar-cred'      # Ensure this matches the credentials in seivice connections
               scannerMode: 'CLI'
               projectKey: 'BoardGame'      # Ensure this matches the key in SonarQube
-              projectName: 'BoardGame'
+              projectName: 'database_service_project'
               configMode: 'file'
               configFile: 'sonar-project.properties'
               extraProperties: |
-                sonar.organization=aug2024    # Include only if using SonarCloud
+                sonar.organization=aug2024    
           - task: SonarQubeAnalyze@6   
 
           - task: SonarQubePublish@6
